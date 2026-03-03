@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>瑕疵辨識與分流系統 - Dashboard</title>
+
+  <!-- 共用樣式 -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- 本頁補強樣式：做出你圖片那個版型 -->
+  <style>
+    /* 讓整體更像企劃書截圖：藍色底＋大卡片 */
+    .page-bg {
+      background: linear-gradient(180deg, rgba(60,140,210,.35), rgba(11,18,32,0) 55%);
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap:14px;
+      align-items:stretch;
+      margin-top:14px;
+    }
+
+    /* 左側：即時畫面卡 */
+    .liveCard{
+      background: rgba(18,35,59,.75);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 12px;
+    }
+    .liveTitle{
+      font-weight:800;
+      font-size:18px;
+      margin: 2px 0 10px;
+      letter-spacing:.5px;
+    }
+    .liveFrame{
+      border-radius: 16px;
+      border: 3px solid rgba(121, 89, 255, .85); /* 紫色框 */
+      background: rgba(0,0,0,.25);
+      overflow:hidden;
+      position:relative;
+      aspect-ratio: 16 / 9;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .liveFrame img, .liveFrame video{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .liveHint{
+      position:absolute;
+      inset:auto 10px 10px 10px;
+      font-size:12px;
+      color:rgba(231,238,252,.78);
+      background: rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      padding:8px 10px;
+      backdrop-filter: blur(6px);
+    }
+
+    /* 超大緊急停止 */
+    .estopWrap{
+      margin-top:12px;
+      display:flex;
+      justify-content:center;
+    }
+    .estopBig{
+      width:min(560px, 100%);
+      padding: 18px 18px;
+      border-radius: 18px;
+      border: none;
+      cursor:pointer;
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color:#fff;
+      background: #ff2d2d;
+      box-shadow: 0 18px 40px rgba(255,45,45,.25);
+    }
+    .estopBig:active{ transform: translateY(1px); }
+
+    /* 右側：系統狀態與數據 */
+    .statusCard{
+      background: rgba(18,35,59,.75);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 12px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .statusTitle{
+      font-weight:900;
+      font-size:20px;
+      margin: 2px 0 0;
+      letter-spacing:.6px;
+    }
+
+    .statusGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+      align-items:stretch;
+    }
+
+    /* 半圓儀表（純 CSS） */
+    .gaugeBox{
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      padding:12px;
+      min-height: 210px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+    }
+    .gaugeLabel{
+      color: var(--muted);
+      font-size:13px;
+      font-weight:600;
+    }
+    .gauge{
+      --p: 65; /* 0~100 */
+      width: 100%;
+      max-width: 260px;
+      margin: 8px auto 2px;
+      aspect-ratio: 2 / 1;
+      border-radius: 999px 999px 0 0;
+      position:relative;
+      overflow:hidden;
+      background:
+        conic-gradient(from 180deg,
+          rgba(59,130,246,.95) calc(var(--p)*1%),
+          rgba(255,255,255,.10) 0);
+    }
+    .gauge::after{
+      content:"";
+      position:absolute;
+      inset: 12% 12% 0 12%;
+      background: rgba(18,35,59,.95);
+      border-radius: 999px 999px 0 0;
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .gaugeValue{
+      position:absolute;
+      left:50%;
+      bottom: 8px;
+      transform: translateX(-50%);
+      z-index:2;
+      font-size:34px;
+      font-weight:900;
+    }
+    .gaugeSub{
+      text-align:center;
+      margin-top:-2px;
+      color: var(--muted);
+      font-size:12px;
+      font-weight:600;
+    }
+    .gaugeBar{
+      height:12px;
+      border-radius:999px;
+      background: rgba(255,255,255,.10);
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .gaugeBar > div{
+      height:100%;
+      width: 65%;
+      background: rgba(34,197,94,.85);
+      border-radius:999px;
+    }
+
+    /* 右側三個收集區卡片 */
+    .areaCard{
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      padding:12px;
+      position:relative;
+      min-height: 88px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:6px;
+    }
+    .areaTop{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .areaName{
+      font-size:13px;
+      color: rgba(231,238,252,.92);
+      font-weight:800;
+      line-height:1.3;
+    }
+    .areaSub{
+      font-size:12px;
+      color: var(--muted);
+      margin-top:2px;
+    }
+    .areaValue{
+      font-size:30px;
+      font-weight:900;
+      color: rgba(34,197,94,.9);
+      text-align:right;
+    }
+    .trash{
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: rgba(231,238,252,.86);
+      width:34px; height:34px;
+      border-radius:12px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex: 0 0 auto;
+    }
+    .trash:hover{ background: rgba(255,255,255,.10); }
+
+    /* 瑕疵品數 */
+    .defectCard{
+      grid-column: 1 / -1;
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      padding:12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      min-height: 88px;
+    }
+    .defectLeft{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color: var(--muted);
+      font-weight:700;
+    }
+    .warnIcon{
+      width:22px; height:22px;
+      border-radius:6px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      color:#ff6b6b;
+      background: rgba(239,68,68,.12);
+      border:1px solid rgba(239,68,68,.25);
+      font-weight:900;
+    }
+    .defectValue{
+      font-size:34px;
+      font-weight:900;
+      color: rgba(239,68,68,.95);
+    }
+
+    @media (max-width: 980px){
+      .heroGrid{ grid-template-columns: 1fr; }
+      .estopBig{ font-size:26px; }
+      .statusGrid{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- 共用守門/防爆（未登入會導回 login.html） -->
+  <script src="core.js"></script>
+
+  <!-- 手機抽屜側欄 -->
+  <div id="overlay" class="drawerOverlay" onclick="toggleDrawer(false)"></div>
+  <aside id="drawer" class="drawer">
+    <div class="sidebar" style="display:block; position:static; height:100vh;">
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <h1>瑕疵辨識與分流系統</h1>
+          <p>多頁系統版本</p>
+        </div>
+      </div>
+
+      <div class="nav">
+        <a href="dashboard.html">🏠 Dashboard <span class="pill">Home</span></a>
+        <a href="logs.html">🧾 事件紀錄 <span class="pill">Logs</span></a>
+        <a href="settings.html">⚙️ 系統設定 <span class="pill">Settings</span></a>
+        <button onclick="logout()">🚪 登出 <span class="pill">Logout</span></button>
+      </div>
+
+      <div class="side-footer">
+        <div>狀態：<span style="color:var(--good); font-weight:800;">● 正常</span></div>
+        <div>提示：此頁為靜態展示，可後續接串流/API。</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="app">
+    <!-- 桌面側欄 -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <h1>瑕疵辨識與分流系統</h1>
+          <p>多頁系統版本</p>
+        </div>
+      </div>
+
+      <div class="nav">
+        <a href="dashboard.html">🏠 Dashboard <span class="pill">Home</span></a>
+        <a href="logs.html">🧾 事件紀錄 <span class="pill">Logs</span></a>
+        <a href="settings.html">⚙️ 系統設定 <span class="pill">Settings</span></a>
+        <button onclick="logout()">🚪 登出 <span class="pill">Logout</span></button>
+      </div>
+
+      <div class="side-footer">
+        <div>系統概念：即時檢測 + 分流統計 + 遠端急停</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="leftTop">
+          <button class="hamburger" onclick="toggleDrawer(true)">☰</button>
+          <div class="pageTitle">
+            <b>瑕疵辨識與分流系統</b>
+            <span>依企劃書 UI：即時檢測畫面 + 系統狀態與數據</span>
+          </div>
+        </div>
+        <div class="rightTop">
+          <div class="status" title="展示用">
+            <span class="dot" id="mqttDot"></span>
+            <span id="mqttText">MQTT 已連線</span>
+          </div>
+          <button class="btn btnPrimary" onclick="demoRefresh()">⟳ 模擬更新</button>
+          <button class="btn btnDanger" onclick="demoEstop()">🛑 急停</button>
+        </div>
+      </div>
+
+      <!-- 主體：依圖片的左右布局 -->
+      <div class="page-bg">
+        <div class="heroGrid">
+
+          <!-- 左：即時檢測畫面 -->
+          <section class="liveCard">
+            <div class="liveTitle">即時檢測畫面</div>
+
+            <div class="liveFrame">
+              <!-- 你之後接串流時，把下面 img 換成 video/canvas 都可以 -->
+              <!-- <img src="YOUR_STREAM.jpg" alt="Live" /> -->
+              <img src="https://dummyimage.com/1280x720/1b2a45/8aa6d6&text=Live+Preview+(Replace+with+Stream)" alt="Live Preview" />
+
+              <div class="liveHint">
+                可替換成：&lt;img&gt; 串流 / &lt;video&gt; / canvas 畫框（YOLO bbox）
+              </div>
+            </div>
+
+            <div class="estopWrap">
+              <button class="estopBig" onclick="demoEstop()">緊急停止</button>
+            </div>
+          </section>
+
+          <!-- 右：系統狀態與數據 -->
+          <section class="statusCard">
+            <div class="statusTitle">系統狀態與數據</div>
+
+            <div class="statusGrid">
+
+              <!-- 儀表 -->
+              <div class="gaugeBox">
+                <div class="gaugeLabel">貨物區剩餘數量</div>
+
+                <!-- 調整 --p 就能改儀表百分比 -->
+                <div class="gauge" id="gauge" style="--p:65;">
+                  <div class="gaugeValue" id="gaugeValue">450</div>
+                </div>
+                <div class="gaugeSub">貨物區剩餘數量</div>
+
+                <div class="gaugeBar" aria-label="progress">
+                  <div id="gaugeBarFill" style="width:65%"></div>
+                </div>
+              </div>
+
+              <!-- 右側三個收集區 -->
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                <div class="areaCard">
+                  <div class="areaTop">
+                    <div>
+                      <div class="areaName">貨物分類收集區</div>
+                      <div class="areaSub">收集區 A (Area A)</div>
+                    </div>
+                    <button class="trash" title="清除（展示）" onclick="clearArea('A')">🗑</button>
+                  </div>
+                  <div class="areaValue" id="areaA">125</div>
+                </div>
+
+                <div class="areaCard">
+                  <div class="areaTop">
+                    <div>
+                      <div class="areaName">貨物分類收集區</div>
+                      <div class="areaSub">收集區 B (Area B)</div>
+                    </div>
+                    <button class="trash" title="清除（展示）" onclick="clearArea('B')">🗑</button>
+                  </div>
+                  <div class="areaValue" id="areaB">180</div>
+                </div>
+
+                <div class="areaCard">
+                  <div class="areaTop">
+                    <div>
+                      <div class="areaName">貨物分類收集區</div>
+                      <div class="areaSub">收集區 C (Area C)</div>
+                    </div>
+                    <button class="trash" title="清除（展示）" onclick="clearArea('C')">🗑</button>
+                  </div>
+                  <div class="areaValue" id="areaC">133</div>
+                </div>
+              </div>
+
+              <!-- 瑕疵品數 -->
+              <div class="defectCard">
+                <div class="defectLeft">
+                  <span class="warnIcon">!</span>
+                  <span>瑕疵品數</span>
+                </div>
+                <div class="defectValue" id="defectCount">12</div>
+              </div>
+
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+      <!-- 錯誤條：避免白畫面 -->
+      <div id="errorBar"></div>
+
+      <div style="margin-top:14px; color:rgba(155,176,207,.9); font-size:12px;">
+        © 2026 AIoT Dashboard (Static Demo)
+      </div>
+    </main>
+  </div>
+
+  <!-- 共用互動 -->
+  <script src="script.js"></script>
+
+  <!-- 本頁 JS：模擬更新＋清除 -->
+  <script>
+    function clearArea(which){
+      try{
+        const id = which === "A" ? "areaA" : which === "B" ? "areaB" : "areaC";
+        const el = document.getElementById(id);
+        if(!el) return;
+        el.textContent = "0";
+        pushLog("WARN", "AREA_" + which, "已清除收集區（展示）");
+      }catch(e){
+        console.error(e);
+        showError("清除失敗");
+      }
+    }
+
+    // 覆蓋 demoRefresh：同時更新右側數據
+    const _oldDemoRefresh = window.demoRefresh;
+    window.demoRefresh = function(){
+      try{
+        // 原本 KPI（如果你有保留 KPI 區也不會爆；這裡沒 KPI 也不會影響）
+        if(typeof _oldDemoRefresh === "function"){
+          try{ _oldDemoRefresh(); }catch(e){}
+        }
+
+        // 模擬數據浮動
+        const a = safeNumber(document.getElementById("areaA")?.textContent, 0) + (Math.random()<0.5?0:1);
+        const b = safeNumber(document.getElementById("areaB")?.textContent, 0) + (Math.random()<0.5?0:1);
+        const c = safeNumber(document.getElementById("areaC")?.textContent, 0) + (Math.random()<0.5?0:1);
+
+        document.getElementById("areaA").textContent = String(a);
+        document.getElementById("areaB").textContent = String(b);
+        document.getElementById("areaC").textContent = String(c);
+
+        const defect = safeNumber(document.getElementById("defectCount")?.textContent, 0) + (Math.random()<0.75?0:1);
+        document.getElementById("defectCount").textContent = String(defect);
+
+        // 儀表（0~700 假設）
+        const v = Math.max(0, Math.min(700, safeNumber(document.getElementById("gaugeValue")?.textContent, 450) + (Math.random()<0.5?-5:5)));
+        document.getElementById("gaugeValue").textContent = String(v);
+
+        const pct = Math.round((v/700)*100);
+        document.getElementById("gauge").style.setProperty("--p", String(pct));
+        document.getElementById("gaugeBarFill").style.width = pct + "%";
+
+        pushLog("OK", "DATA", "系統數據已更新（展示）");
+      }catch(e){
+        console.error(e);
+        showError("更新資料失敗");
+      }
+    };
+
+    // 進來先補一筆 log（如果你有 logs.html）
+    try{ pushLog("OK","SYSTEM","Dashboard 已載入（展示）"); }catch(e){}
+  </script>
+</body>
+</html>
